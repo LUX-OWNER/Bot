@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gemini AI চ্যাট - কোড সহায়ক</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Hind Siliguri', 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-item {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes typing {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        .typing-dot {
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        pre {
+            background: #1f2937 !important;
+            border-radius: 8px;
+            padding: 16px !important;
+            overflow-x: auto;
+            margin: 12px 0;
+            position: relative;
+        }
+        
+        code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+        }
+        
+        p code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .dark p code {
+            background: #374151;
+        }
+        
+        .copy-code-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        pre:hover .copy-code-btn {
+            opacity: 1;
+        }
+        
+        .copy-code-btn:hover {
+            background: #4b5563;
+        }
+        
+        .attached-file {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f3f4f6;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 4px;
+            font-size: 14px;
+        }
+        
+        .dark .attached-file {
+            background: #374151;
+        }
+        
+        .attached-file button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                top: 0;
+                height: 100%;
+                z-index: 50;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+            }
+            
+            .overlay.show {
+                display: block;
+            }
+        }
+        
+        textarea:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #3b82f6;
+        }
+        
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        body.modal-open {
+            overflow: hidden;
+        }
+        
+        @keyframes geminiPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        
+        .gemini-logo {
+            animation: geminiPulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors">
+    
+    <div id="loading" class="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">
+        <div class="text-center">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400">অ্যাপ লোড হচ্ছে...</p>
+        </div>
+    </div>
+    
+    <div id="overlay" class="overlay"></div>
+    
+    <div class="flex min-h-screen">
+        
+        <aside id="sidebar" class="sidebar w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <button id="newChatBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    নতুন চ্যাট
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-2">
+                <div id="chatHistory" class="space-y-1"></div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <button id="settingsBtn" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    সেটিংস
+                </button>
+                <button id="darkModeToggle" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <svg id="darkModeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                    <span id="darkModeText">ডার্ক মোড</span>
+                </button>
+            </div>
+        </aside>
+        
+        <main class="flex-1 flex flex-col min-h-screen">
+            
+            <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button id="menuToggle" class="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Gemini AI চ্যাট</h1>
+                </div>
+                <div id="statusIndicator" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <div class="w-2 h-2 bg-red-500 rounded-full" id="statusDot"></div>
+                    <span id="statusText">সংযুক্ত নয়</span>
+                </div>
+            </header>
+            
+            <div id="messagesContainer" class="flex-1 overflow-y-auto px-4 py-6">
+                <div id="messages" class="max-w-4xl mx-auto space-y-6">
+                    <div id="welcomeMessage" class="text-center py-12">
+                        <div class="inline-block p-4 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-full mb-4 gemini-logo">
+                            <svg class="w-16 h-16 text-blue-600 dark:text-blue-300" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Gemini AI তে স্বাগতম</h2>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">আপনার কোড এবং ফাইল নিয়ে কাজ করার জন্য প্রস্তুত</p>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                            <p>✨ ফাইল আপলোড করুন এবং বিশ্লেষণ করান</p>
+                            <p>💻 কোড রিভিউ এবং সাজেশন পান</p>
+                            <p>🚀 যেকোনো প্রশ্ন করুন</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-4">
+                <div class="max-w-4xl mx-auto">
+                    <div id="attachedFilesContainer" class="mb-3 hidden">
+                        <div id="attachedFiles" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    
+                    <div class="relative bg-gray-100 dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="আপনার বার্তা বা প্রশ্ন লিখুন..."
+                            class="w-full px-4 py-3 pr-24 bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none max-h-32"
+                            rows="1"
+                            style="min-height: 52px;"
+                        ></textarea>
+                        <div class="absolute right-2 bottom-2 flex items-center gap-2">
+                            <input type="file" id="fileInput" class="hidden" multiple accept=".txt,.js,.py,.html,.css,.json,.md,.java,.cpp,.c,.php,.rb,.go,.rs,.ts,.jsx,.tsx,.vue,.xml,.sql,.sh,.yml,.yaml">
+                            <button id="attachBtn" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 p-2 rounded-lg transition-colors" title="ফাইল যুক্ত করুন">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                </svg>
+                            </button>
+                            <button id="sendBtn" class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors" disabled>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                        ফাইল সাপোর্ট: কোড ফাইল (.js, .py, .html, .css, .json, ইত্যাদি)
+                    </p>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+    
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20">
+            <div class="modal-backdrop fixed inset-0"></div>
+            
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full shadow-xl">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">Gemini সেটিংস</h2>
+                    <button id="closeSettings" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Gemini API Key
+                            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:underline text-xs ml-2">(API Key পান)</a>
+                        </label>
+                        <input 
+                            type="password" 
+                            id="apiKey" 
+                            placeholder="AIza..." 
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            আপনার API Key সুরক্ষিত রাখা হবে এবং শুধুমাত্র আপনার ব্রাউজারে সংরক্ষিত থাকবে
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">মডেল নির্বাচন করুন</label>
+                        <select 
+                            id="modelName" 
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (সবচেয়ে দ্রুত, সুপারিশকৃত)</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (দ্রুত)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (শক্তিশালী)</option>
+                            <option value="gemini-pro">Gemini Pro (স্ট্যান্ডার্ড)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">সিস্টেম প্রম্পট (ঐচ্ছিক)</label>
+                        <textarea 
+                            id="systemPrompt" 
+                            placeholder="আপনি একজন সহায়ক AI সহকারী যিনি কোড বিশ্লেষণ এবং পরামর্শ প্রদান করেন..."
+                            rows="4"
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        >আপনি একজন বিশেষজ্ঞ কোড রিভিউয়ার এবং প্রোগ্রামিং সহকারী। আপনার কাজ হল:
+১. কোড বিশ্লেষণ করা এবং উন্নতির পরামর্শ দেওয়া
+২. বাগ খুঁজে বের করা এবং সমাধান প্রদান করা
+৩. বেস্ট প্র্যাকটিস এবং অপটিমাইজেশন পরামর্শ দেওয়া
+৪. বাংলায় স্পষ্ট এবং সহজ ব্যাখ্যা প্রদান করা</textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Temperature (সৃজনশীলতা): <span id="tempValue">0.7</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="temperature" 
+                            min="0" 
+                            max="2" 
+                            step="0.1" 
+                            value="0.7"
+                            class="w-full"
+                        >
+                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>সঠিক (0)</span>
+                            <span>সৃজনশীল (2)</span>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                    <button id="cancelSettings" class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        বাতিল
+                    </button>
+                    <button id="saveSettings" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                        সংরক্ষণ করুন
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        (function() {
+            'use strict';
+            
+            const STATE = {
+                chats: [],
+                currentChatId: null,
+                config: {
+                    apiKey: '',
+                    modelName: 'gemini-2.0-flash-exp',
+                    systemPrompt: `আপনি একজন বিশেষজ্ঞ কোড রিভিউয়ার এবং প্রোগ্রামিং সহকারী। আপনার কাজ হল:
+১. কোড বিশ্লেষণ করা এবং উন্নতির পরামর্শ দেওয়া
+২. বাগ খুঁজে বের করা এবং সমাধান প্রদান করা
+৩. বেস্ট প্র্যাকটিস এবং অপটিমাইজেশন পরামর্শ দেওয়া
+৪. বাংলায় স্পষ্ট এবং সহজ ব্যাখ্যা প্রদান করা`,
+                    temperature: 0.7
+                },
+                darkMode: false,
+                isTyping: false,
+                attachedFiles: []
+            };
+            
+            const Storage = {
+                save: (key, value) => {
+                    try {
+                        localStorage.setItem(key, JSON.stringify(value));
+                    } catch (e) {
+                        console.error('Storage error:', e);
+                    }
+                },
+                
+                load: (key, defaultValue = null) => {
+                    try {
+                        const item = localStorage.getItem(key);
+                        return item ? JSON.parse(item) : defaultValue;
+                    } catch (e) {
+                        console.error('Storage error:', e);
+                        return defaultValue;
+                    }
+                },
+                
+                remove: (key) => {
+                    try {
+                        localStorage.removeItem(key);
+                    } catch (e) {
+                        console.error('Storage error:', e);
+                    }
+                }
+            };
+            
+            const UI = {
+                loading: document.getElementById('loading'),
+                sidebar: document.getElementById('sidebar'),
+                overlay: document.getElementById('overlay'),
+                menuToggle: document.getElementById('menuToggle'),
+                newChatBtn: document.getElementById('newChatBtn'),
+                chatHistory: document.getElementById('chatHistory'),
+                messages: document.getElementById('messages'),
+                messagesContainer: document.getElementById('messagesContainer'),
+                welcomeMessage: document.getElementById('welcomeMessage'),
+                messageInput: document.getElementById('messageInput'),
+                sendBtn: document.getElementById('sendBtn'),
+                attachBtn: document.getElementById('attachBtn'),
+                fileInput: document.getElementById('fileInput'),
+                attachedFilesContainer: document.getElementById('attachedFilesContainer'),
+                attachedFiles: document.getElementById('attachedFiles'),
+                settingsBtn: document.getElementById('settingsBtn'),
+                settingsModal: document.getElementById('settingsModal'),
+                closeSettings: document.getElementById('closeSettings'),
+                cancelSettings: document.getElementById('cancelSettings'),
+                saveSettings: document.getElementById('saveSettings'),
+                darkModeToggle: document.getElementById('darkModeToggle'),
+                darkModeIcon: document.getElementById('darkModeIcon'),
+                darkModeText: document.getElementById('darkModeText'),
+                statusDot: document.getElementById('statusDot'),
+                statusText: document.getElementById('statusText'),
+                apiKey: document.getElementById('apiKey'),
+                modelName: document.getElementById('modelName'),
+                systemPrompt: document.getElementById('systemPrompt'),
+                temperature: document.getElementById('temperature'),
+                tempValue: document.getElementById('tempValue')
+            };
+            
+            async function callGeminiAPI(messages, files = []) {
+                if (!STATE.config.apiKey) {
+                    throw new Error('API Key সেট করা হয়নি। অনুগ্রহ করে সেটিংসে গিয়ে API Key যুক্ত করুন।');
+                }
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${STATE.config.modelName}:generateContent?key=${STATE.config.apiKey}`;
+                
+                const contents = [];
+                
+                if (STATE.config.systemPrompt) {
+                    contents.push({
+                        role: 'user',
+                        parts: [{ text: STATE.config.systemPrompt }]
+                    });
+                    contents.push({
+                        role: 'model',
+                        parts: [{ text: 'বুঝেছি। আমি আপনার নির্দেশনা অনুযায়ী সাহায্য করব।' }]
+                    });
+                }
+                
+                for (const msg of messages) {
+                    const role = msg.role === 'user' ? 'user' : 'model';
+                    contents.push({
+                        role: role,
+                        parts: [{ text: msg.content }]
+                    });
+                }
+                
+                if (files.length > 0) {
+                    const lastUserIndex = contents.map(c => c.role).lastIndexOf('user');
+                    if (lastUserIndex !== -1) {
+                        for (const file of files) {
+                            contents[lastUserIndex].parts.push({
+                                text: `\n\n--- ফাইল: ${file.name} ---\n${file.content}\n--- শেষ ---\n`
+                            });
+                        }
+                    }
+                }
+                
+                const requestBody = {
+                    contents: contents,
+                    generationConfig: {
+                        temperature: STATE.config.temperature,
+                        maxOutputTokens: 8192,
+                    }
+                };
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+                    throw new Error('অবৈধ API রেসপন্স');
+                }
+                
+                return data.candidates[0].content.parts[0].text;
+            }
+            
+            function handleFileSelect(event) {
+                const files = event.target.files;
+                for (const file of files) {
+                    if (file.size > 1024 * 1024 * 5) {
+                        showToast(`ফাইল ${file.name} অনেক বড় (সর্বোচ্চ 5MB)`);
+                        continue;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        STATE.attachedFiles.push({
+                            name: file.name,
+                            content: e.target.result,
+                            size: file.size
+                        });
+                        renderAttachedFiles();
+                    };
+                    reader.readAsText(file);
+                }
+                event.target.value = '';
+            }
+            
+            function renderAttachedFiles() {
+                if (STATE.attachedFiles.length === 0) {
+                    UI.attachedFilesContainer.classList.add('hidden');
+                    return;
+                }
+                
+                UI.attachedFilesContainer.classList.remove('hidden');
+                UI.attachedFiles.innerHTML = '';
+                
+                STATE.attachedFiles.forEach((file, index) => {
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'attached-file';
+                    fileDiv.innerHTML = `
+                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="text-gray-700 dark:text-gray-300">${escapeHtml(file.name)}</span>
+                        <button onclick="removeFile(${index})" class="ml-2">×</button>
+                    `;
+                    UI.attachedFiles.appendChild(fileDiv);
+                });
+            }
+            
+            window.removeFile = function(index) {
+                STATE.attachedFiles.splice(index, 1);
+                renderAttachedFiles();
+            };
+            
+            function init() {
+                STATE.chats = Storage.load('chats', []);
+                STATE.config = { ...STATE.config, ...Storage.load('config', {}) };
+                STATE.darkMode = Storage.load('darkMode', false);
+                
+                if (STATE.darkMode) {
+                    document.documentElement.classList.add('dark');
+                    updateDarkModeUI(true);
+                }
+                
+                loadSettingsUI();
+                renderChatHistory();
+                
+                if (STATE.chats.length === 0) {
+                    createNewChat();
+                } else {
+                    const lastChat = STATE.chats[STATE.chats.length - 1];
+                    loadChat(lastChat.id);
+                }
+                
+                updateStatus();
+                setupEventListeners();
+                
+                setTimeout(() => {
+                    UI.loading.style.display = 'none';
+                }, 300);
+                
+                UI.messageInput.focus();
+            }
+            
+            function setupEventListeners() {
+                UI.menuToggle.addEventListener('click', toggleSidebar);
+                UI.overlay.addEventListener('click', toggleSidebar);
+                UI.newChatBtn.addEventListener('click', createNewChat);
+                UI.settingsBtn.addEventListener('click', openSettings);
+                UI.closeSettings.addEventListener('click', closeSettings);
+                UI.cancelSettings.addEventListener('click', closeSettings);
+                UI.saveSettings.addEventListener('click', saveSettings);
+                UI.darkModeToggle.addEventListener('click', toggleDarkMode);
+                UI.messageInput.addEventListener('input', handleInputResize);
+                UI.messageInput.addEventListener('keydown', handleKeyPress);
+                UI.sendBtn.addEventListener('click', sendMessage);
+                UI.attachBtn.addEventListener('click', () => UI.fileInput.click());
+                UI.fileInput.addEventListener('change', handleFileSelect);
+                UI.temperature.addEventListener('input', (e) => {
+                    UI.tempValue.textContent = e.target.value;
+                });
+                
+                UI.settingsModal.addEventListener('click', (e) => {
+                    if (e.target === UI.settingsModal) closeSettings();
+                });
+            }
+            
+            function toggleSidebar() {
+                UI.sidebar.classList.toggle('open');
+                UI.overlay.classList.toggle('show');
+            }
+            
+            function renderChatHistory() {
+                UI.chatHistory.innerHTML = '';
+                STATE.chats.forEach(chat => {
+                    const chatItem = createChatItem(chat);
+                    UI.chatHistory.appendChild(chatItem);
+                });
+            }
+            
+            function createChatItem(chat) {
+                const div = document.createElement('div');
+                div.className = `chat-item p-3 rounded-lg cursor-pointer transition-colors group ${
+                    chat.id === STATE.currentChatId 
+                        ? 'bg-blue-100 dark:bg-blue-900' 
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-800 dark:text-gray-200 truncate flex-1">${escapeHtml(chat.title)}</span>
+                        <div class="hidden group-hover:flex items-center gap-1">
+                            <button class="delete-btn p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded" title="মুছুন">
+                                <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                div.addEventListener('click', (e) => {
+                    if (!e.target.closest('.delete-btn')) {
+                        loadChat(chat.id);
+                        if (window.innerWidth < 768) toggleSidebar();
+                    }
+                });
+                
+                const deleteBtn = div.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteChat(chat.id);
+                });
+                
+                return div;
+            }
+            
+            function createNewChat() {
+                const chat = {
+                    id: Date.now().toString(),
+                    title: 'নতুন চ্যাট',
+                    messages: [],
+                    createdAt: new Date().toISOString()
+                };
+                
+                STATE.chats.push(chat);
+                STATE.currentChatId = chat.id;
+                STATE.attachedFiles = [];
+                
+                Storage.save('chats', STATE.chats);
+                renderChatHistory();
+                renderMessages();
+            }
+            
+            function loadChat(chatId) {
+                STATE.currentChatId = chatId;
+                STATE.attachedFiles = [];
+                renderChatHistory();
+                renderMessages();
+                renderAttachedFiles();
+            }
+            
+            function deleteChat(chatId) {
+                if (!confirm('আপনি কি এই চ্যাটটি মুছে ফেলতে চান?')) return;
+                
+                STATE.chats = STATE.chats.filter(c => c.id !== chatId);
+                Storage.save('chats', STATE.chats);
+                
+                if (STATE.currentChatId === chatId) {
+                    if (STATE.chats.length > 0) {
+                        STATE.currentChatId = STATE.chats[STATE.chats.length - 1].id;
+                    } else {
+                        createNewChat();
+                    }
+                }
+                
+                renderChatHistory();
+                renderMessages();
+            }
+            
+            function getCurrentChat() {
+                return STATE.chats.find(c => c.id === STATE.currentChatId);
+            }
+            
+            function updateChatTitle(chat) {
+                if (chat.messages.length === 1) {
+                    const firstMessage = chat.messages[0].content;
+                    chat.title = firstMessage.substring(0, 40) + (firstMessage.length > 40 ? '...' : '');
+                    Storage.save('chats', STATE.chats);
+                    renderChatHistory();
+                }
+            }
+            
+            function renderMessages() {
+                const chat = getCurrentChat();
+                if (!chat) {
+                    UI.messages.innerHTML = '<div class="text-center py-12"><p>কোন চ্যাট নির্বাচিত নয়</p></div>';
+                    return;
+                }
+                
+                UI.messages.innerHTML = '';
+                
+                if (chat.messages.length === 0) {
+                    UI.welcomeMessage.style.display = 'block';
+                    UI.messages.appendChild(UI.welcomeMessage);
+                } else {
+                    chat.messages.forEach(msg => {
+                        const msgElement = createMessageElement(msg);
+                        UI.messages.appendChild(msgElement);
+                    });
+                }
+                
+                scrollToBottom();
+            }
+            
+            function createMessageElement(message) {
+                const div = document.createElement('div');
+                div.className = 'message-item flex gap-4';
+                
+                const isUser = message.role === 'user';
+                
+                div.innerHTML = `
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${
+                            isUser 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gradient-to-br from-blue-500 to-purple-500 text-white'
+                        }">
+                            ${isUser 
+                                ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>'
+                                : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/></svg>'
+                            }
+                        </div>
+                    </div>
+                    <div class="flex-1 space-y-2">
+                        <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                            ${isUser ? 'আপনি' : 'Gemini'}
+                        </div>
+                        <div class="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+                            ${message.isTyping ? message.content : renderMarkdown(message.content)}
+                        </div>
+                    </div>
+                `;
+                
+                return div;
+            }
+            
+            function renderMarkdown(text) {
+                try {
+                    marked.setOptions({
+                        breaks: true,
+                        gfm: true,
+                        highlight: function(code, lang) {
+                            if (lang && hljs.getLanguage(lang)) {
+                                try {
+                                    return hljs.highlight(code, { language: lang }).value;
+                                } catch (e) {}
+                            }
+                            return hljs.highlightAuto(code).value;
+                        }
+                    });
+                    
+                    let html = marked.parse(text);
+                    html = html.replace(/<pre>/g, '<pre><button class="copy-code-btn" onclick="copyCode(this)">কপি করুন</button>');
+                    
+                    return html;
+                } catch (e) {
+                    console.error('Markdown parsing error:', e);
+                    return escapeHtml(text);
+                }
+            }
+            
+            window.copyCode = function(button) {
+                const pre = button.parentElement;
+                const code = pre.querySelector('code');
+                const text = code.textContent;
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    button.textContent = 'কপি হয়েছে!';
+                    setTimeout(() => {
+                        button.textContent = 'কপি করুন';
+                    }, 2000);
+                });
+            };
+            
+            async function sendMessage() {
+                const text = UI.messageInput.value.trim();
+                if ((!text && STATE.attachedFiles.length === 0) || STATE.isTyping) return;
+                
+                if (!STATE.config.apiKey) {
+                    showToast('API Key সেট করা হয়নি');
+                    openSettings();
+                    return;
+                }
+                
+                const chat = getCurrentChat();
+                if (!chat) return;
+                
+                let messageContent = text;
+                if (STATE.attachedFiles.length > 0) {
+                    messageContent += `\n\n[${STATE.attachedFiles.length}টি ফাইল সংযুক্ত করা হয়েছে]`;
+                }
+                
+                const userMessage = { role: 'user', content: text || '[ফাইল পাঠানো হয়েছে]' };
+                chat.messages.push(userMessage);
+                
+                updateChatTitle(chat);
+                
+                UI.messageInput.value = '';
+                handleInputResize();
+                
+                renderMessages();
+                
+                STATE.isTyping = true;
+                UI.sendBtn.disabled = true;
+                UI.messageInput.disabled = true;
+                UI.attachBtn.disabled = true;
+                
+                const typingMessage = { role: 'assistant', content: createTypingIndicator(), isTyping: true };
+                chat.messages.push(typingMessage);
+                renderMessages();
+                
+                try {
+                    const response = await callGeminiAPI(
+                        chat.messages.slice(0, -1),
+                        STATE.attachedFiles
+                    );
+                    
+                    chat.messages.pop();
+                    chat.messages.push({ role: 'assistant', content: response });
+                    
+                    STATE.attachedFiles = [];
+                    renderAttachedFiles();
+                    
+                    Storage.save('chats', STATE.chats);
+                    renderMessages();
+                    
+                } catch (error) {
+                    console.error('Gemini API Error:', error);
+                    chat.messages.pop();
+                    chat.messages.push({ 
+                        role: 'assistant', 
+                        content: `**ত্রুটি:** ${error.message}` 
+                    });
+                    renderMessages();
+                }
+                
+                STATE.isTyping = false;
+                UI.sendBtn.disabled = false;
+                UI.messageInput.disabled = false;
+                UI.attachBtn.disabled = false;
+                UI.messageInput.focus();
+            }
+            
+            function createTypingIndicator() {
+                return `
+                    <div class="flex items-center gap-2">
+                        <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                    </div>
+                `;
+            }
+            
+            function openSettings() {
+                UI.settingsModal.classList.remove('hidden');
+                document.body.classList.add('modal-open');
+            }
+            
+            function closeSettings() {
+                UI.settingsModal.classList.add('hidden');
+                document.body.classList.remove('modal-open');
+            }
+            
+            function loadSettingsUI() {
+                UI.apiKey.value = STATE.config.apiKey || '';
+                UI.modelName.value = STATE.config.modelName || 'gemini-2.0-flash-exp';
+                UI.systemPrompt.value = STATE.config.systemPrompt || '';
+                UI.temperature.value = STATE.config.temperature || 0.7;
+                UI.tempValue.textContent = STATE.config.temperature || 0.7;
+            }
+            
+            function saveSettings() {
+                STATE.config = {
+                    apiKey: UI.apiKey.value.trim(),
+                    modelName: UI.modelName.value,
+                    systemPrompt: UI.systemPrompt.value.trim(),
+                    temperature: parseFloat(UI.temperature.value)
+                };
+                
+                Storage.save('config', STATE.config);
+                updateStatus();
+                closeSettings();
+                showToast('সেটিংস সংরক্ষিত হয়েছে');
+            }
+            
+            function updateStatus() {
+                if (STATE.config.apiKey) {
+                    UI.statusDot.className = 'w-2 h-2 bg-green-500 rounded-full';
+                    UI.statusText.textContent = 'সংযুক্ত';
+                } else {
+                    UI.statusDot.className = 'w-2 h-2 bg-red-500 rounded-full';
+                    UI.statusText.textContent = 'সংযুক্ত নয়';
+                }
+            }
+            
+            function toggleDarkMode() {
+                STATE.darkMode = !STATE.darkMode;
+                
+                if (STATE.darkMode) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                
+                updateDarkModeUI(STATE.darkMode);
+                Storage.save('darkMode', STATE.darkMode);
+            }
+            
+            function updateDarkModeUI(isDark) {
+                if (isDark) {
+                    UI.darkModeIcon.innerHTML = `
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    `;
+                    UI.darkModeText.textContent = 'লাইট মোড';
+                } else {
+                    UI.darkModeIcon.innerHTML = `
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    `;
+                    UI.darkModeText.textContent = 'ডার্ক মোড';
+                }
+            }
+            
+            function handleInputResize() {
+                UI.messageInput.style.height = 'auto';
+                UI.messageInput.style.height = Math.min(UI.messageInput.scrollHeight, 128) + 'px';
+                UI.sendBtn.disabled = (!UI.messageInput.value.trim() && STATE.attachedFiles.length === 0) || STATE.isTyping;
+            }
+            
+            function handleKeyPress(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            }
+            
+            function scrollToBottom() {
+                setTimeout(() => {
+                    UI.messagesContainer.scrollTop = UI.messagesContainer.scrollHeight;
+                }, 100);
+            }
+            
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            function showToast(message) {
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity';
+                toast.textContent = message;
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 2000);
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+            
+        })();
+    </script>
+</body>
+</html>
